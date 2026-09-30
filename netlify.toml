@@ -1,6 +1,7 @@
 [build.environment]
   FRONTEND_SAVE_DIR="../public"
   GO_VERSION = "1.27.0"
+  CGO_ENABLED = "0"
 
 [build]
   command = """
