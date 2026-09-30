@@ -92,12 +92,12 @@ func account(r *gin.RouterGroup, app *a.App) {
 				Subscribed: subscribed,
 			}); errors.Is(err, database.ErrExistUser) {
 				existing, lookupErr := app.DBController.GetUserByEmail(ctx, email)
-				if handleError(c, lookupErr) {
+				if handleError(c, "GetUserByEmail", lookupErr) {
 					return
 				}
 				userUUID = existing.UUID
 				isNewUser = false
-			} else if !handleError(c, err) {
+			} else if !handleError(c, "AddUser", err) {
 				return
 			}
 
@@ -109,7 +109,7 @@ func account(r *gin.RouterGroup, app *a.App) {
 				map[string]any{
 					provider.SiteName + "-uuid": userUUID.String(),
 				},
-			); !handleError(c, err) {
+			); !handleError(c, "SetCustomUserClaims", err) {
 				if isNewUser {
 					app.DBController.DeleteUser(ctx, userUUID)
 				}
@@ -158,7 +158,9 @@ func account(r *gin.RouterGroup, app *a.App) {
 			return
 		}
 
-		if err := app.DBController.DeleteUser(ctx, userUUID); !handleError(c, err) {
+		if !handleError(c, "DeleteUser",
+			app.DBController.DeleteUser(ctx, userUUID),
+		) {
 			return
 		}
 
@@ -191,8 +193,9 @@ func account(r *gin.RouterGroup, app *a.App) {
 				return
 			}
 
-			err = app.DBController.SetSubscription(ctx, subscribed, userUUID)
-			if !handleError(c, err) {
+			if !handleError(c, "SetSubscription",
+				app.DBController.SetSubscription(ctx, subscribed, userUUID),
+			) {
 				return
 			}
 		}

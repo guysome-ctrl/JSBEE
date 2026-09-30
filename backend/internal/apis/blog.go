@@ -21,7 +21,7 @@ func blog(r *gin.RouterGroup, app *a.App) {
 		ctx := c.Request.Context()
 
 		blogs, err := app.DBController.GetBlogs(ctx)
-		if !handleError(c, err) {
+		if !handleError(c, "GetBlogs", err) {
 			return
 		}
 
@@ -43,7 +43,7 @@ func blog(r *gin.RouterGroup, app *a.App) {
 		}
 
 		blog, err := app.DBController.GetBlog(ctx, blogUUID)
-		if !handleError(c, err) {
+		if !handleError(c, "GetBlog", err) {
 			return
 		}
 
@@ -61,7 +61,7 @@ func blog(r *gin.RouterGroup, app *a.App) {
 		}
 
 		blog, err := app.DBController.GetBlog(ctx, blogUUID)
-		if !handleError(c, err) {
+		if !handleError(c, "GetBlog", err) {
 			return
 		}
 

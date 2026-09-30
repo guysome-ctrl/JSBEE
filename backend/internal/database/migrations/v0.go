@@ -37,15 +37,15 @@ func (v0) Apply(
 		return err
 	}
 
-  if _, err := tx.ExecContext(
-    ctx, tx.Rebind(`
+	if _, err := tx.ExecContext(
+		ctx, tx.Rebind(`
       INSERT INTO migrations (version, applied_at)
       VALUES (0, ?)
       ON CONFLICT(version) DO NOTHING;
     `), time.Now().Unix(),
-  ); err != nil {
-    return err
-  }
+	); err != nil {
+		return err
+	}
 
 	return tx.Commit()
 }

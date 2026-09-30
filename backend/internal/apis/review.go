@@ -60,7 +60,7 @@ func review(r *gin.RouterGroup, app *a.App) {
 		ctx := c.Request.Context()
 
 		papers, err := app.DBController.GetUnapprovedPapers(ctx)
-		if !handleError(c, err) {
+		if !handleError(c, "GetUnapprovedPapers", err) {
 			return
 		}
 
@@ -81,7 +81,8 @@ func review(r *gin.RouterGroup, app *a.App) {
 		}
 
 		if !handleError(
-			c, app.DBController.ApprovePaper(ctx, paperUUID),
+			c, "ApprovePaper",
+			app.DBController.ApprovePaper(ctx, paperUUID),
 		) {
 			return
 		}
@@ -104,7 +105,8 @@ func review(r *gin.RouterGroup, app *a.App) {
 		}
 
 		if !handleError(
-			c, app.DBController.RejectPaper(ctx, paperUUID),
+			c, "RejectPaper",
+			app.DBController.RejectPaper(ctx, paperUUID),
 		) {
 			return
 		}

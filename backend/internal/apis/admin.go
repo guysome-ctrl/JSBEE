@@ -67,13 +67,15 @@ func admin(r *gin.RouterGroup, app *a.App) {
 
 		if field == "volume" {
 			if !handleError(
-				c, app.DBController.IncrementVolume(ctx),
+				c, "IncrementVolume",
+				app.DBController.IncrementVolume(ctx),
 			) {
 				return
 			}
 		} else if field == "issue" {
 			if !handleError(
-				c, app.DBController.IncrementIssue(ctx),
+				c, "IncrementIssue",
+				app.DBController.IncrementIssue(ctx),
 			) {
 				return
 			}
@@ -93,7 +95,7 @@ func admin(r *gin.RouterGroup, app *a.App) {
 		ctx := c.Request.Context()
 
 		papers, err := app.DBController.GetReviewedPapers(ctx)
-		if !handleError(c, err) {
+		if !handleError(c, "GetReviewedPapers", err) {
 			return
 		}
 
@@ -104,13 +106,13 @@ func admin(r *gin.RouterGroup, app *a.App) {
 		ctx := c.Request.Context()
 
 		count, err := app.DBController.PublishPapers(ctx)
-		if !handleError(c, err) {
+		if !handleError(c, "PublishPapers", err) {
 			return
 		}
 
 		if count > 0 {
 			volumes, err := app.DBController.GetVolumes(ctx)
-			if !handleError(c, err) {
+			if !handleError(c, "GetVolumes", err) {
 				return
 			}
 			if app.Cache == nil {
@@ -150,7 +152,7 @@ func admin(r *gin.RouterGroup, app *a.App) {
 		}
 
 		user, err := app.DBController.GetUser(ctx, userUUID)
-		if !handleError(c, err) {
+		if !handleError(c, "GetUser", err) {
 			return
 		}
 		if user.Role.Role == roles.Owner.Role {
@@ -162,7 +164,7 @@ func admin(r *gin.RouterGroup, app *a.App) {
 		}
 
 		err = app.DBController.ChangeRole(ctx, userUUID, newRole)
-		if !handleError(c, err) {
+		if !handleError(c, "ChangeRole", err) {
 			return
 		}
 
@@ -192,12 +194,12 @@ func admin(r *gin.RouterGroup, app *a.App) {
 
 		if err := app.DBController.EditCityLead(
 			ctx, userUUID, cityLead,
-		); !handleError(c, err) {
+		); !handleError(c, "EditCityLead", err) {
 			return
 		}
 
 		leaders, err := app.DBController.GetCityLeaders(ctx)
-		if !handleError(c, err) {
+		if !handleError(c, "GetCityLeaders", err) {
 			return
 		}
 		if app.Cache == nil {
@@ -206,7 +208,7 @@ func admin(r *gin.RouterGroup, app *a.App) {
 		app.Cache[a.CacheKeyLeaders] = leaders
 
 		user, err := app.DBController.GetUser(ctx, userUUID)
-		if !handleError(c, err) {
+		if !handleError(c, "GetUser", err) {
 			return
 		}
 
@@ -241,7 +243,7 @@ func admin(r *gin.RouterGroup, app *a.App) {
 		uploadURL, err := app.ObjectStore.PresignedUploadURL(
 			ctx, filename, uploadURLTTL,
 		)
-		if !handleError(c, err) {
+		if !handleError(c, "PresignedUploadURL", err) {
 			return
 		}
 
@@ -284,7 +286,7 @@ func admin(r *gin.RouterGroup, app *a.App) {
 			)
 			return
 		}
-		if !handleError(c, err) {
+		if !handleError(c, "PrivateFileSize", err) {
 			return
 		}
 		if size <= 0 {
@@ -295,7 +297,7 @@ func admin(r *gin.RouterGroup, app *a.App) {
 
 		if err := app.ObjectStore.PublicFile(
 			ctx, filename,
-		); !handleError(c, err) {
+		); !handleError(c, "PublicFile", err) {
 			app.ObjectStore.DeleteFile(ctx, filename)
 			return
 		}
@@ -307,7 +309,7 @@ func admin(r *gin.RouterGroup, app *a.App) {
 			Filename:  filename,
 			CreatedAt: now,
 			UpdatedAt: now,
-		}); !handleError(c, err) {
+		}); !handleError(c, "AddBlog", err) {
 			app.ObjectStore.DeleteFile(ctx, filename)
 			return
 		}
@@ -326,14 +328,14 @@ func admin(r *gin.RouterGroup, app *a.App) {
 		}
 
 		blog, err := app.DBController.GetBlog(ctx, blogUUID)
-		if !handleError(c, err) {
+		if !handleError(c, "GetBlog", err) {
 			return
 		}
 
 		uploadURL, err := app.ObjectStore.PresignedUploadURL(
 			ctx, blog.Filename, uploadURLTTL,
 		)
-		if !handleError(c, err) {
+		if !handleError(c, "PresignedUploadURL", err) {
 			return
 		}
 
@@ -373,7 +375,7 @@ func admin(r *gin.RouterGroup, app *a.App) {
 		}
 
 		blog, err := app.DBController.GetBlog(ctx, blogUUID)
-		if !handleError(c, err) {
+		if !handleError(c, "GetBlog", err) {
 			return
 		}
 
@@ -396,7 +398,7 @@ func admin(r *gin.RouterGroup, app *a.App) {
 				)
 				return
 			}
-			if !handleError(c, err) {
+			if !handleError(c, "PrivateFileSize", err) {
 				return
 			}
 			if size <= 0 {
@@ -407,13 +409,15 @@ func admin(r *gin.RouterGroup, app *a.App) {
 
 			if err := app.ObjectStore.PublicFile(
 				ctx, blog.Filename,
-			); !handleError(c, err) {
+			); !handleError(c, "PublicFile", err) {
 				return
 			}
 		}
 
 		blog.UpdatedAt = time.Now().Unix()
-		if err := app.DBController.UpdateBlog(ctx, blog); !handleError(c, err) {
+		if !handleError(c, "UpdateBlog",
+			app.DBController.UpdateBlog(ctx, blog),
+		) {
 			return
 		}
 
@@ -431,17 +435,17 @@ func admin(r *gin.RouterGroup, app *a.App) {
 		}
 
 		blog, err := app.DBController.GetBlog(ctx, blogUUID)
-		if !handleError(c, err) {
+		if !handleError(c, "GetBlog", err) {
 			return
 		}
 
 		if err := app.DBController.DeleteBlog(
 			ctx, blogUUID,
-		); !handleError(c, err) {
+		); !handleError(c, "DeleteBlog", err) {
 			return
 		}
 		handleError(
-			c, app.ObjectStore.DeleteFile(
+			c, "DeleteFile", app.ObjectStore.DeleteFile(
 				ctx, blog.Filename,
 			),
 		)
@@ -456,7 +460,7 @@ func admin(r *gin.RouterGroup, app *a.App) {
 		uploadURL, err := app.ObjectStore.PresignedUploadURL(
 			ctx, frontend.AboutFilename, uploadURLTTL,
 		)
-		if !handleError(c, err) {
+		if !handleError(c, "PresignedUploadURL", err) {
 			return
 		}
 
@@ -477,7 +481,7 @@ func admin(r *gin.RouterGroup, app *a.App) {
 			)
 			return
 		}
-		if !handleError(c, err) {
+		if !handleError(c, "PrivateFileSize", err) {
 			return
 		}
 		if size <= 0 {
@@ -488,7 +492,7 @@ func admin(r *gin.RouterGroup, app *a.App) {
 
 		if err := app.ObjectStore.PublicFile(
 			ctx, frontend.AboutFilename,
-		); !handleError(c, err) {
+		); !handleError(c, "PublicFile", err) {
 			return
 		}
 

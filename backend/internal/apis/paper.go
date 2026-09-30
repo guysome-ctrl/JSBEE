@@ -29,7 +29,7 @@ func paper(r *gin.RouterGroup, app *a.App) {
 			uploadURL, err := app.ObjectStore.PresignedUploadURL(
 				ctx, filename, uploadURLTTL,
 			)
-			if !handleError(c, err) {
+			if !handleError(c, "PresignedUploadURL", err) {
 				return
 			}
 
@@ -47,7 +47,7 @@ func paper(r *gin.RouterGroup, app *a.App) {
 			ctx := c.Request.Context()
 
 			userUUID, err := uuid.Parse(c.GetString(middlewares.UUIDField))
-			if !handleError(c, err) {
+			if !handleError(c, "uuid.Parse", err) {
 				return
 			}
 
@@ -77,7 +77,7 @@ func paper(r *gin.RouterGroup, app *a.App) {
 				)
 				return
 			}
-			if !handleError(c, err) {
+			if !handleError(c, "PrivateFileSize", err) {
 				return
 			}
 
@@ -89,7 +89,7 @@ func paper(r *gin.RouterGroup, app *a.App) {
 
 			if err := app.ObjectStore.PublicFile(
 				ctx, filename,
-			); !handleError(c, err) {
+			); !handleError(c, "PublicFile", err) {
 				app.ObjectStore.DeleteFile(ctx, filename)
 				return
 			}
@@ -99,7 +99,7 @@ func paper(r *gin.RouterGroup, app *a.App) {
 				Title:     strings.TrimSpace(body.Title),
 				Filename:  filename,
 				OwnerUUID: &userUUID,
-			}); !handleError(c, err) {
+			}); !handleError(c, "AddPaper", err) {
 				app.ObjectStore.DeleteFile(ctx, filename)
 				return
 			}
@@ -119,7 +119,7 @@ func paper(r *gin.RouterGroup, app *a.App) {
 		}
 
 		paper, err := app.DBController.GetPaper(ctx, paperUUID)
-		if !handleError(c, err) {
+		if !handleError(c, "GetPaper", err) {
 			return
 		}
 
@@ -144,7 +144,7 @@ func paper(r *gin.RouterGroup, app *a.App) {
 		}
 
 		volumes, err := app.DBController.GetVolumes(ctx)
-		if !handleError(c, err) {
+		if !handleError(c, "GetVolumes", err) {
 			return
 		}
 

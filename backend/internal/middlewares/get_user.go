@@ -23,7 +23,7 @@ func GetUserMiddleware(app *a.App) gin.HandlerFunc {
 		}
 
 		user, err := app.DBController.GetUser(ctx, userUUID)
-		if !handleError(c, err) {
+		if !handleError(c, "GetUser", err) {
 			return
 		}
 

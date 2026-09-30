@@ -26,7 +26,7 @@ func user(r *gin.RouterGroup, app *a.App) {
 			}
 
 			user, err := app.DBController.GetUser(ctx, userUUID)
-			if !handleError(c, err) {
+			if !handleError(c, "GetUser", err) {
 				return
 			}
 
@@ -34,7 +34,7 @@ func user(r *gin.RouterGroup, app *a.App) {
 			return
 		} else if userEmail != "" {
 			user, err := app.DBController.GetUserByEmail(ctx, userEmail)
-			if !handleError(c, err) {
+			if !handleError(c, "GetUserByEmail", err) {
 				return
 			}
 
@@ -67,7 +67,7 @@ func user(r *gin.RouterGroup, app *a.App) {
 			}
 		} else if userEmail != "" {
 			user, err := app.DBController.GetUserByEmail(ctx, userEmail)
-			if !handleError(c, err) {
+			if !handleError(c, "GetUserByEmail", err) {
 				return
 			}
 
@@ -81,7 +81,7 @@ func user(r *gin.RouterGroup, app *a.App) {
 		}
 
 		papers, err := app.DBController.GetUserPapers(ctx, userUUID)
-		if !handleError(c, err) {
+		if !handleError(c, "GetUserPapers", err) {
 			return
 		}
 

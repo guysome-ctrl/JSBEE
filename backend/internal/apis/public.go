@@ -28,7 +28,7 @@ func public(r *gin.RouterGroup, app *a.App) {
 		}
 
 		leaders, err := app.DBController.GetCityLeaders(ctx)
-		if !handleError(c, err) {
+		if !handleError(c, "GetCityLeaders", err) {
 			return
 		}
 

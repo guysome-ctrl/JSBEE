@@ -18,7 +18,7 @@ import (
 // If this func returns false that means it received a
 // non nil error in which case you are to return immediately
 // else you can continue with the route
-func handleError(c *gin.Context, err error) bool {
+func handleError(c *gin.Context, scope string, err error) bool {
 	if errors.Is(err, database.ErrInvalid) {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return false
@@ -27,7 +27,7 @@ func handleError(c *gin.Context, err error) bool {
 		return false
 	} else if err != nil { // Fallback, any new cases should be added above this
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-		c.Error(errors.New(fmt.Sprintf("%v: %v", c.FullPath(), err)))
+		c.Error(errors.New(fmt.Sprintf("%v - %v: %v", c.FullPath(), scope, err)))
 		return false
 	}
 
