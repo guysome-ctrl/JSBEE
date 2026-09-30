@@ -8,7 +8,7 @@ import (
 )
 
 // This migration adds the `users` table
-// and creats an index on it
+// and creates an index on it
 type v1 struct{}
 
 func init() {
@@ -23,29 +23,40 @@ func (v1) Apply(
 	ctx context.Context,
 	tx *sqlx.Tx,
 ) error {
-	query := tx.Rebind(`
-    CREATE TABLE users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      uuid TEXT NOT NULL UNIQUE CHECK (uuid != ''),
-      name TEXT NOT NULL CHECK (name != ''),
-      email TEXT NOT NULL UNIQUE CHECK (email LIKE '%@%'),
-      subscribed INTEGER NOT NULL DEFAULT 0 CHECK (subscribed IN (0, 1)),
-      role TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN (
-        'owner',
-        'admin',
-        'reviewer',
-        'viewer'
-      ))
-    );
-
-    CREATE INDEX idx_users
-    ON users(name, role);
-
-    INSERT INTO migrations (version, applied_at)
-    VALUES (1, ?);
-  `)
 	if _, err := tx.ExecContext(
-		ctx, query, time.Now().Unix(),
+		ctx, tx.Rebind(`
+      CREATE TABLE users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT NOT NULL UNIQUE CHECK (uuid != ''),
+        name TEXT NOT NULL CHECK (name != ''),
+        email TEXT NOT NULL UNIQUE CHECK (email LIKE '%@%'),
+        subscribed INTEGER NOT NULL DEFAULT 0 CHECK (subscribed IN (0, 1)),
+        role TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN (
+          'owner',
+          'admin',
+          'reviewer',
+          'viewer'
+        ))
+      );
+    `),
+	); err != nil {
+		return err
+	}
+
+	if _, err := tx.ExecContext(
+		ctx, tx.Rebind(`
+      CREATE INDEX idx_users
+      ON users(name, role);
+    `),
+	); err != nil {
+		return err
+	}
+
+	if _, err := tx.ExecContext(
+		ctx, tx.Rebind(`
+      INSERT INTO migrations (version, applied_at)
+      VALUES (1, ?);
+    `), time.Now().Unix(),
 	); err != nil {
 		return err
 	}

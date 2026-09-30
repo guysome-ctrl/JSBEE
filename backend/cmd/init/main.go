@@ -22,8 +22,6 @@ func main() {
 	wg.Go(func() {
 		getDBConnection(Ctx, app)
 		runDBMigrations(Ctx, app)
-		// Object store must be connected before generating components,
-		// `generateInitalComponents` embeds its public base URL
 		connectObjectStore(Ctx, app)
 		initObjectStore(Ctx, app)
 		seedAboutPage(Ctx, app)

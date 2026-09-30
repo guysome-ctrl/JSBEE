@@ -25,22 +25,27 @@ func (v0) Apply(
 	}
 	defer tx.Rollback()
 
-	query := tx.Rebind(`
-    CREATE TABLE IF NOT EXISTS migrations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      version BIGINT UNIQUE NOT NULL,
-      applied_at BIGINT NOT NULL
-    );
-
-    INSERT INTO migrations (version, applied_at)
-    VALUES (0, ?)
-    ON CONFLICT(version) DO NOTHING;
-  `)
 	if _, err := tx.ExecContext(
-		ctx, query, time.Now().Unix(),
+		ctx, tx.Rebind(`
+      CREATE TABLE IF NOT EXISTS migrations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        version BIGINT UNIQUE NOT NULL,
+        applied_at BIGINT NOT NULL
+      );
+    `),
 	); err != nil {
 		return err
 	}
+
+  if _, err := tx.ExecContext(
+    ctx, tx.Rebind(`
+      INSERT INTO migrations (version, applied_at)
+      VALUES (0, ?)
+      ON CONFLICT(version) DO NOTHING;
+    `), time.Now().Unix(),
+  ); err != nil {
+    return err
+  }
 
 	return tx.Commit()
 }

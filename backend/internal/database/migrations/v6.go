@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// This adds the nullable `city_lead` column to the `users` table
+// This adds the `city_lead` column to the `users` table
 type v6 struct{}
 
 func init() {
@@ -22,16 +22,20 @@ func (v6) Apply(
 	ctx context.Context,
 	tx *sqlx.Tx,
 ) error {
-	query := `
-    ALTER TABLE users
-    ADD COLUMN city_lead TEXT DEFAULT NULL;
-
-    INSERT INTO migrations (version, applied_at)
-    VALUES (6, ?);
-  `
+	if _, err := tx.ExecContext(
+		ctx, tx.Rebind(`
+      ALTER TABLE users
+      ADD COLUMN city_lead TEXT DEFAULT NULL;
+    `),
+	); err != nil {
+		return err
+	}
 
 	if _, err := tx.ExecContext(
-		ctx, query, time.Now().Unix(),
+		ctx, tx.Rebind(`
+      INSERT INTO migrations (version, applied_at)
+      VALUES (6, ?);
+    `), time.Now().Unix(),
 	); err != nil {
 		return err
 	}

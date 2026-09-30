@@ -22,17 +22,21 @@ func (v4) Apply(
 	ctx context.Context,
 	tx *sqlx.Tx,
 ) error {
-	query := `
-    ALTER TABLE papers
-    ADD COLUMN reviewed INTEGER NOT NULL DEFAULT 0
-    CHECK (reviewed IN (0, 1));
-
-    INSERT INTO migrations (version, applied_at)
-    VALUES (4, ?);
-  `
+	if _, err := tx.ExecContext(
+		ctx, tx.Rebind(`
+      ALTER TABLE papers
+      ADD COLUMN reviewed INTEGER NOT NULL DEFAULT 0
+      CHECK (reviewed IN (0, 1));
+    `),
+	); err != nil {
+		return err
+	}
 
 	if _, err := tx.ExecContext(
-		ctx, query, time.Now().Unix(),
+		ctx, tx.Rebind(`
+      INSERT INTO migrations (version, applied_at)
+      VALUES (4, ?);
+    `), time.Now().Unix(),
 	); err != nil {
 		return err
 	}

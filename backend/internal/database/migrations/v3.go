@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// This creats the `state` table
+// This creates the `state` table
 type v3 struct{}
 
 func init() {
@@ -22,25 +22,35 @@ func (v3) Apply(
 	ctx context.Context,
 	tx *sqlx.Tx,
 ) error {
-	query := `
-    CREATE TABLE state (
-      id INTEGER PRIMARY KEY,
-      volume INTEGER NOT NULL,
-      issue INTEGER NOT NULL,
+	if _, err := tx.ExecContext(
+		ctx, tx.Rebind(`
+      CREATE TABLE state (
+        id INTEGER PRIMARY KEY,
+        volume INTEGER NOT NULL,
+        issue INTEGER NOT NULL,
 
-      CHECK (id = 1)
-    );
+        CHECK (id = 1)
+      );
+    `),
+	); err != nil {
+		return err
+	}
 
+	if _, err := tx.ExecContext(
+		ctx, tx.Rebind(`
     INSERT INTO state (id, volume, issue)
     VALUES (1, 1, 1)
     ON CONFLICT DO NOTHING;
-
-    INSERT INTO migrations (version, applied_at)
-    VALUES (3, ?);
-  `
+  `),
+	); err != nil {
+		return err
+	}
 
 	if _, err := tx.ExecContext(
-		ctx, query, time.Now().Unix(),
+		ctx, tx.Rebind(`
+    INSERT INTO migrations (version, applied_at)
+    VALUES (3, ?);
+  `), time.Now().Unix(),
 	); err != nil {
 		return err
 	}
