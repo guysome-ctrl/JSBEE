@@ -13,7 +13,7 @@ func user(r *gin.RouterGroup, app *a.App) {
 	group := r.Group("/user")
 
 	// This route returns the details of a user
-	group.GET("/", func(c *gin.Context) {
+	group.GET("", func(c *gin.Context) {
 		ctx := c.Request.Context()
 		unparsedUserUUID := c.Query("uuid")
 		userEmail := c.Query("email")
