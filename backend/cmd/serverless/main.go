@@ -5,14 +5,15 @@ import (
 	a "github.com/Ankumeah/JSBEE/backend/internal/app"
 	"github.com/Ankumeah/JSBEE/backend/internal/middlewares"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	ginadapter "github.com/awslabs/aws-lambda-go-api-proxy/gin"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 
 	"context"
 	"sync"
+	"time"
 )
 
 var Ctx = context.Background()
@@ -39,6 +40,14 @@ func main() {
 	wg.Wait()
 
 	r := gin.Default()
+	r.Use(cors.New(cors.Config{ // TODO: Acctly fill these
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"*"},
+		AllowHeaders:     []string{"*"},
+		ExposeHeaders:    []string{"*"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 	apiGroup := r.Group(
 		"/api/"+app.Config.APIVersion+"/",
 		middlewares.LogMiddleware(app, Ctx),
