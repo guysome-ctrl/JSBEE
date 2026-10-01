@@ -5,11 +5,13 @@ import (
 	a "github.com/Ankumeah/JSBEE/backend/internal/app"
 	"github.com/Ankumeah/JSBEE/backend/internal/middlewares"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
 	"context"
 	"os"
 	"sync"
+	"time"
 )
 
 var Ctx = context.Background()
@@ -31,6 +33,14 @@ func main() {
 
 	app.Logger.InfoContext(Ctx, "Starting http server")
 	r := gin.Default()
+	r.Use(cors.New(cors.Config{ // TODO: Acctly fill these
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"*"},
+		AllowHeaders:     []string{"*"},
+		ExposeHeaders:    []string{"*"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 	apiGroup := r.Group(
 		"/api/"+app.Config.APIVersion+"/",
 		middlewares.LogMiddleware(app, Ctx),
