@@ -4,6 +4,7 @@ const SiteName = "JSBEE"
 const SiteDescription = "Journal of Sustainable Business in Emerging Economies"
 const SiteTagline = "A student-led platform for the next generation of thinkers"
 const SiteURL = "https://jsbee.netlify.app"
+const GoogleSEOTagContent = "zcok4WCAvRqgKWPRES4Z9xT-VGSJJ_Pf0BK5MS46kO8"
 
 const AboutSeedContent = "# Welcome to JSBEE\n" +
 	"\n" +
