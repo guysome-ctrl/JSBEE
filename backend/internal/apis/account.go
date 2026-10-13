@@ -1,6 +1,7 @@
 package apis
 
 import (
+	"github.com/Ankumeah/JSBEE/backend/internal/apis/shared"
 	a "github.com/Ankumeah/JSBEE/backend/internal/app"
 	"github.com/Ankumeah/JSBEE/backend/internal/database"
 	"github.com/Ankumeah/JSBEE/backend/internal/middlewares"
@@ -92,12 +93,12 @@ func account(r *gin.RouterGroup, app *a.App) {
 				Subscribed: subscribed,
 			}); errors.Is(err, database.ErrExistUser) {
 				existing, lookupErr := app.DBController.GetUserByEmail(ctx, email)
-				if handleError(c, "GetUserByEmail", lookupErr) {
+				if shared.HandleError(c, "GetUserByEmail", lookupErr) {
 					return
 				}
 				userUUID = existing.UUID
 				isNewUser = false
-			} else if !handleError(c, "AddUser", err) {
+			} else if !shared.HandleError(c, "AddUser", err) {
 				return
 			}
 
@@ -109,7 +110,7 @@ func account(r *gin.RouterGroup, app *a.App) {
 				map[string]any{
 					provider.SiteName + "-uuid": userUUID.String(),
 				},
-			); !handleError(c, "SetCustomUserClaims", err) {
+			); !shared.HandleError(c, "SetCustomUserClaims", err) {
 				if isNewUser {
 					app.DBController.DeleteUser(ctx, userUUID)
 				}
@@ -158,7 +159,7 @@ func account(r *gin.RouterGroup, app *a.App) {
 			return
 		}
 
-		if !handleError(c, "DeleteUser",
+		if !shared.HandleError(c, "DeleteUser",
 			app.DBController.DeleteUser(ctx, userUUID),
 		) {
 			return
@@ -193,7 +194,7 @@ func account(r *gin.RouterGroup, app *a.App) {
 				return
 			}
 
-			if !handleError(c, "SetSubscription",
+			if !shared.HandleError(c, "SetSubscription",
 				app.DBController.SetSubscription(ctx, subscribed, userUUID),
 			) {
 				return

@@ -195,6 +195,51 @@ type DBController interface {
 	//   - `ErrInvalidBlog`
 	//   - Errors by the underlying DB
 	DeleteBlog(ctx context.Context, uuid uuid.UUID) error
+
+	// Adds a new core member
+	//
+	// May return the following errors:
+	//   - `ErrExistCoreMember`
+	//   - Errors by the underlying DB
+	AddCoreMember(ctx context.Context, member CoreMember) error
+
+	// Gets the details of a core member
+	//
+	// May return the following errors:
+	//   - `ErrInvalidCoreMember`
+	//   - Errors by the underlying DB
+	GetCoreMember(ctx context.Context, uuid uuid.UUID) (CoreMember, error)
+
+	// Get all core members
+	//
+	// May return the following errors:
+	//   - Errors by the underlying DB
+	GetCoreMembers(ctx context.Context) ([]CoreMember, error)
+
+	// Updates a core member. Ignores photo
+	//
+	// May return the following errors:
+	//   - `ErrInvalidCoreMember`
+	//   - `ErrExistCoreMember` (role conflict)
+	//   - Errors by the underlying DB
+	UpdateCoreMember(ctx context.Context, member CoreMember) error
+
+	// Updates photo of a core member
+	//
+	// May return the following errors:
+	//   - `ErrInvalidCoreMember`
+	//   - `ErrExistCoreMember` (image filename conflict)
+	//   - Errors by the underlying DB
+	UpdateCoreMemberPhoto(
+		ctx context.Context, uuid uuid.UUID, imageFilename string,
+	) error
+
+	// Deletes a core member
+	//
+	// May return the following errors:
+	//   - `ErrInvalidCoreMember`
+	//   - Errors by the underlying DB
+	DeleteCoreMember(ctx context.Context, uuid uuid.UUID) (CoreMember, error)
 }
 
 type User struct {
@@ -213,12 +258,8 @@ type Paper struct {
 	Filename  string     `json:"filename" binding:"required" db:"filename"`
 	OwnerUUID *uuid.UUID `json:"owner_uuid" binding:"required" db:"owner_uuid"`
 	Reviewed  bool       `json:"reviewed" binding:"required" db:"reviewed"`
-	// Location names where the paper was written (free text, e.g. a
-	// city and country). Empty only for papers submitted before v7.
-	Location string `json:"location" binding:"required" db:"location"`
-	// Category names the paper's research area (free text, e.g.
-	// "Economics"). Empty only for papers submitted before v7.
-	Category string `json:"category" binding:"required" db:"category"`
+	Location  string     `json:"location" binding:"required" db:"location"`
+	Category  string     `json:"category" binding:"required" db:"category"`
 }
 
 type Issue struct {
@@ -237,4 +278,14 @@ type Blog struct {
 	Filename  string    `json:"filename" binding:"required" db:"filename"`
 	CreatedAt int64     `json:"created_at" binding:"required" db:"created_at"`
 	UpdatedAt int64     `json:"updated_at" binding:"required" db:"updated_at"`
+}
+
+type CoreMember struct {
+	UUID          uuid.UUID `json:"uuid" binding:"required" db:"uuid"`
+	Name          string    `json:"name" binding:"required" db:"name"`
+	Role          string    `json:"role" binding:"required" db:"role"`
+	Description   string    `json:"description" binding:"required" db:"description"`
+	ImageFilename string    `json:"image_filename" binding:"required" db:"image_filename"`
+	SortOrder     int64     `json:"sort_order" binding:"required" db:"sort_order"`
+	ImageURL      string    `json:"image_url" db:"-"`
 }

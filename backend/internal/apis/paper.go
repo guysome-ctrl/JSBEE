@@ -1,6 +1,7 @@
 package apis
 
 import (
+	"github.com/Ankumeah/JSBEE/backend/internal/apis/shared"
 	a "github.com/Ankumeah/JSBEE/backend/internal/app"
 	"github.com/Ankumeah/JSBEE/backend/internal/database"
 	"github.com/Ankumeah/JSBEE/backend/internal/middlewares"
@@ -27,9 +28,9 @@ func paper(r *gin.RouterGroup, app *a.App) {
 			filename := paperUUID.String() + ".pdf"
 
 			uploadURL, err := app.ObjectStore.PresignedUploadURL(
-				ctx, filename, uploadURLTTL,
+				ctx, filename, shared.UploadURLTTL,
 			)
-			if !handleError(c, "PresignedUploadURL", err) {
+			if !shared.HandleError(c, "PresignedUploadURL", err) {
 				return
 			}
 
@@ -47,7 +48,7 @@ func paper(r *gin.RouterGroup, app *a.App) {
 			ctx := c.Request.Context()
 
 			userUUID, err := uuid.Parse(c.GetString(middlewares.UUIDField))
-			if !handleError(c, "uuid.Parse", err) {
+			if !shared.HandleError(c, "uuid.Parse", err) {
 				return
 			}
 
@@ -69,7 +70,9 @@ func paper(r *gin.RouterGroup, app *a.App) {
 				)
 				return
 			}
-			location, category, err := validatePaperMetadata(body.Location, body.Category)
+			location, category, err := shared.ValidatePaperMetadata(
+				body.Location, body.Category,
+			)
 			if err != nil {
 				c.JSON(http.StatusBadRequest,
 					gin.H{"error": err.Error()},
@@ -86,7 +89,7 @@ func paper(r *gin.RouterGroup, app *a.App) {
 				)
 				return
 			}
-			if !handleError(c, "PrivateFileSize", err) {
+			if !shared.HandleError(c, "PrivateFileSize", err) {
 				return
 			}
 
@@ -98,7 +101,7 @@ func paper(r *gin.RouterGroup, app *a.App) {
 
 			if err := app.ObjectStore.PublicFile(
 				ctx, filename,
-			); !handleError(c, "PublicFile", err) {
+			); !shared.HandleError(c, "PublicFile", err) {
 				app.ObjectStore.DeleteFile(ctx, filename)
 				return
 			}
@@ -110,7 +113,7 @@ func paper(r *gin.RouterGroup, app *a.App) {
 				OwnerUUID: &userUUID,
 				Location:  location,
 				Category:  category,
-			}); !handleError(c, "AddPaper", err) {
+			}); !shared.HandleError(c, "AddPaper", err) {
 				app.ObjectStore.DeleteFile(ctx, filename)
 				return
 			}
@@ -130,7 +133,7 @@ func paper(r *gin.RouterGroup, app *a.App) {
 		}
 
 		paper, err := app.DBController.GetPaper(ctx, paperUUID)
-		if !handleError(c, "GetPaper", err) {
+		if !shared.HandleError(c, "GetPaper", err) {
 			return
 		}
 
@@ -151,7 +154,7 @@ func paper(r *gin.RouterGroup, app *a.App) {
 		}
 
 		volumes, err := app.DBController.GetVolumes(ctx)
-		if !handleError(c, "GetVolumes", err) {
+		if !shared.HandleError(c, "GetVolumes", err) {
 			return
 		}
 

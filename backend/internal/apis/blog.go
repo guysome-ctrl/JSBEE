@@ -1,6 +1,7 @@
 package apis
 
 import (
+	"github.com/Ankumeah/JSBEE/backend/internal/apis/shared"
 	a "github.com/Ankumeah/JSBEE/backend/internal/app"
 	"github.com/Ankumeah/JSBEE/backend/internal/database"
 
@@ -21,7 +22,7 @@ func blog(r *gin.RouterGroup, app *a.App) {
 		ctx := c.Request.Context()
 
 		blogs, err := app.DBController.GetBlogs(ctx)
-		if !handleError(c, "GetBlogs", err) {
+		if !shared.HandleError(c, "GetBlogs", err) {
 			return
 		}
 
@@ -43,7 +44,7 @@ func blog(r *gin.RouterGroup, app *a.App) {
 		}
 
 		blog, err := app.DBController.GetBlog(ctx, blogUUID)
-		if !handleError(c, "GetBlog", err) {
+		if !shared.HandleError(c, "GetBlog", err) {
 			return
 		}
 
@@ -61,7 +62,7 @@ func blog(r *gin.RouterGroup, app *a.App) {
 		}
 
 		blog, err := app.DBController.GetBlog(ctx, blogUUID)
-		if !handleError(c, "GetBlog", err) {
+		if !shared.HandleError(c, "GetBlog", err) {
 			return
 		}
 

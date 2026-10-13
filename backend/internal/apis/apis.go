@@ -1,6 +1,7 @@
 package apis
 
 import (
+	"github.com/Ankumeah/JSBEE/backend/internal/apis/admin"
 	a "github.com/Ankumeah/JSBEE/backend/internal/app"
 	"github.com/gin-gonic/gin"
 )
@@ -12,7 +13,7 @@ func Apis(r *gin.RouterGroup, app *a.App) {
 	user(r, app)
 	paper(r, app)
 	review(r, app)
-	admin(r, app)
+	admin.Admin(r, app)
 	blog(r, app)
 	public(r, app)
 }

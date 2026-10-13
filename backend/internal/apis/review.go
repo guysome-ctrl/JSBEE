@@ -1,6 +1,7 @@
 package apis
 
 import (
+	"github.com/Ankumeah/JSBEE/backend/internal/apis/shared"
 	a "github.com/Ankumeah/JSBEE/backend/internal/app"
 	"github.com/Ankumeah/JSBEE/backend/internal/middlewares"
 	"github.com/Ankumeah/JSBEE/backend/internal/roles"
@@ -60,7 +61,7 @@ func review(r *gin.RouterGroup, app *a.App) {
 		ctx := c.Request.Context()
 
 		papers, err := app.DBController.GetUnapprovedPapers(ctx)
-		if !handleError(c, "GetUnapprovedPapers", err) {
+		if !shared.HandleError(c, "GetUnapprovedPapers", err) {
 			return
 		}
 
@@ -80,7 +81,7 @@ func review(r *gin.RouterGroup, app *a.App) {
 			return
 		}
 
-		if !handleError(
+		if !shared.HandleError(
 			c, "ApprovePaper",
 			app.DBController.ApprovePaper(ctx, paperUUID),
 		) {
@@ -104,14 +105,14 @@ func review(r *gin.RouterGroup, app *a.App) {
 			return
 		}
 
-		if !handleError(
+		if !shared.HandleError(
 			c, "RejectPaper",
 			app.DBController.RejectPaper(ctx, paperUUID),
 		) {
 			return
 		}
 
-		if !handleError(
+		if !shared.HandleError(
 			c, "RejectPaper",
 			app.ObjectStore.DeleteFile(ctx, paperUUID.String()+".pdf"),
 		) {

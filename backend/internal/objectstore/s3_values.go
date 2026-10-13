@@ -33,6 +33,12 @@ func contentTypeFor(filename string) string {
 		return "application/pdf"
 	case strings.HasSuffix(lower, ".md") || strings.HasSuffix(lower, ".markdown"):
 		return "text/markdown; charset=utf-8"
+	case strings.HasSuffix(lower, ".jpg") || strings.HasSuffix(lower, ".jpeg"):
+		return "image/jpeg"
+	case strings.HasSuffix(lower, ".png"):
+		return "image/png"
+	case strings.HasSuffix(lower, ".webp"):
+		return "image/webp"
 	default:
 		return "application/octet-stream"
 	}

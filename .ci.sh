@@ -32,6 +32,7 @@ for dir in backend smtp_relay; do
     if test -n "${CI:-}"; then
       run gofmt -d .
     else
+      go mod tidy
       run go fmt ./...
     fi
   )
