@@ -1,0 +1,27 @@
+[build.environment]
+  FRONTEND_SAVE_DIR = "../public"
+  GO_VERSION = "1.27.0"
+  CGO_ENABLED = "0"
+
+[build]
+  command = """
+    cd backend &&
+    go tool templ generate ./internal/frontend/ &&
+    go build -tags=sqlite,turso,init -o /tmp/jsbee-init ./cmd/init &&
+    /tmp/jsbee-init &&
+    go build -tags=sqlite,turso -o ../netlify/functions/api ./cmd/serverless
+  """
+  publish = "public"
+
+[functions]
+  directory = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/not_found.html"
+  status = 404
