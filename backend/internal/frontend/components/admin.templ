@@ -67,6 +67,13 @@ templ adminPage(aboutURL string) {
 					>
 						Team
 					</button>
+					<button
+						type="button"
+						id="sidebar-core-members"
+						class="sidebar-item shrink-0 md:w-full rounded-[3px] px-3 py-2 text-left text-sm font-medium text-stone-700 transition-colors hover:bg-stone-100"
+					>
+						Core members
+					</button>
 				</nav>
 			</aside>
 			<div class="flex-1 px-4 py-12 sm:px-6">
@@ -316,6 +323,70 @@ templ adminPage(aboutURL string) {
 							</div>
 						</div>
 					</div>
+					<div id="panel-core-members" class="hidden mt-8">
+						<div class="mx-auto max-w-3xl space-y-6">
+							<div class="border border-[#DDD5C2] bg-white/60 p-6 shadow-sm">
+								<h2 class="font-serif text-xl font-semibold text-stone-900">Add core member</h2>
+								<label class="mt-4 block">
+									<span class="text-sm font-medium text-stone-700">Name</span>
+									<input
+										id="core-new-name"
+										type="text"
+										maxlength="120"
+										placeholder="Full name"
+										class="mt-1 w-full rounded-[3px] border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-[#33523B] focus:outline-none"
+									/>
+								</label>
+								<label class="mt-4 block">
+									<span class="text-sm font-medium text-stone-700">Role</span>
+									<input
+										id="core-new-role"
+										type="text"
+										maxlength="120"
+										placeholder="e.g. Founder & Executive Lead"
+										class="mt-1 w-full rounded-[3px] border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-[#33523B] focus:outline-none"
+									/>
+								</label>
+								<label class="mt-4 block">
+									<span class="text-sm font-medium text-stone-700">Description</span>
+									<textarea
+										id="core-new-description"
+										rows="5"
+										placeholder="Short bio shown on the team page"
+										class="mt-1 w-full rounded-[3px] border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-[#33523B] focus:outline-none"
+									></textarea>
+								</label>
+								<label class="mt-4 block">
+									<span class="text-sm font-medium text-stone-700">Photo (.jpg, .jpeg, .png or .webp, max 20MB)</span>
+									<input
+										id="core-new-photo"
+										type="file"
+										accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+										class="mt-1 block w-full text-sm text-stone-600 file:mr-3 file:rounded-[3px] file:border-0 file:bg-[#EDEFE4] file:px-4 file:py-2 file:text-sm file:font-bold file:text-[#16211B] hover:file:bg-white"
+									/>
+								</label>
+								<div class="mt-4">
+									<button
+										type="button"
+										id="btn-core-add"
+										class="rounded-[3px] bg-[#33523B] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#26402D] disabled:opacity-50"
+									>
+										Add member
+									</button>
+								</div>
+							</div>
+							<div>
+								<h2 class="font-serif text-xl font-semibold text-stone-900">Core members</h2>
+								<p class="mt-1 text-sm text-stone-500">
+									Select a member to see their photo and bio,
+									then edit or remove them.
+								</p>
+								<div id="core-members-loading" class="mt-2 text-sm text-stone-500">Loading core members...</div>
+								<div id="core-members-empty" class="mt-2 hidden text-sm text-stone-500">No core members yet.</div>
+								<ul id="core-members-list" class="mt-2 hidden divide-y divide-[#E7E0CF] border border-[#DDD5C2] bg-white/60 p-4 shadow-sm"></ul>
+							</div>
+						</div>
+					</div>
 				</div>
 			</div>
 		</main>
@@ -341,9 +412,11 @@ templ adminPage(aboutURL string) {
 						roles: document.getElementById('panel-roles'),
 						blog: document.getElementById('panel-blog'),
 						about: document.getElementById('panel-about'),
-						team: document.getElementById('panel-team')
+						team: document.getElementById('panel-team'),
+						coreMembers: document.getElementById('panel-core-members')
 					};
 					var publishLoaded = false;
+					var coreMembersLoaded = false;
 
 					function selectSidebar(activeId) {
 						document.querySelectorAll('.sidebar-item').forEach(function(btn) {
@@ -389,6 +462,13 @@ templ adminPage(aboutURL string) {
 					document.getElementById('sidebar-team').addEventListener('click', function() {
 						selectSidebar('sidebar-team');
 						panels.team.classList.remove('hidden');
+					});
+
+					document.getElementById('sidebar-core-members')
+						.addEventListener('click', function() {
+						selectSidebar('sidebar-core-members');
+						panels.coreMembers.classList.remove('hidden');
+						if (!coreMembersLoaded) loadCoreMembersAdmin();
 					});
 
 					function loadReviewedPapers() {
@@ -1147,6 +1227,460 @@ templ adminPage(aboutURL string) {
 							showToast(err.message);
 						}).finally(function() {
 							saveBtn.disabled = false;
+						});
+					});
+
+					var coreUuidPattern = /^[0-9a-fA-F-]{36}$/;
+
+					function corePhotoExtFromName(name) {
+						var idx = name.lastIndexOf('.');
+						if (idx < 0) {
+							return '';
+						}
+						return name.slice(idx).toLowerCase();
+					}
+
+					function corePhotoContentType(ext, file) {
+						if (file && file.type && file.type.indexOf('image/') === 0) {
+							return file.type;
+						}
+						if (ext === '.png') {
+							return 'image/png';
+						}
+						if (ext === '.webp') {
+							return 'image/webp';
+						}
+						return 'image/jpeg';
+					}
+
+					function failCoreMember(err, fallback) {
+						if (isSessionExpiredError(err)) {
+							handleSessionExpired();
+							return;
+						}
+						if (err && err.status === 403) {
+							showToast('You are not allowed to manage core members');
+							return;
+						}
+						showToast((err && err.message) || fallback || 'Request failed');
+					}
+
+					function coreMemberValid(member) {
+						return member &&
+							typeof member.uuid === 'string' &&
+							coreUuidPattern.test(member.uuid) &&
+							typeof member.name === 'string' &&
+							member.name &&
+							typeof member.role === 'string' &&
+							member.role &&
+							typeof member.description === 'string' &&
+							member.description;
+					}
+
+					function coreTextInput(value, placeholder) {
+						var input = document.createElement('input');
+						input.type = 'text';
+						input.maxLength = 120;
+						input.placeholder = placeholder;
+						input.value = value || '';
+						input.className = 'mt-1 w-full rounded-[3px] border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-[#33523B] focus:outline-none';
+						return input;
+					}
+
+					function loadCoreMembersAdmin() {
+						var loading = document.getElementById('core-members-loading');
+						var emptyEl = document.getElementById('core-members-empty');
+						var listEl = document.getElementById('core-members-list');
+						loading.classList.remove('hidden');
+						emptyEl.classList.add('hidden');
+						listEl.classList.add('hidden');
+						listEl.innerHTML = '';
+						fetchWithRetry('/api/v1/core-members')
+							.then(function(resp) {
+								return checkApiResponse(resp, 'Failed to load core members');
+							}).then(function(resp) {
+								return resp.json();
+							}).then(function(data) {
+								var raw = (data && data.core_members) || [];
+								var members = Array.isArray(raw) ? raw : [];
+								members = members.filter(coreMemberValid);
+								loading.classList.add('hidden');
+								if (!members.length) {
+									emptyEl.classList.remove('hidden');
+									coreMembersLoaded = true;
+									return;
+								}
+								members.forEach(function(member) {
+									listEl.appendChild(coreMemberRow(member));
+								});
+								listEl.classList.remove('hidden');
+								coreMembersLoaded = true;
+							}).catch(function(err) {
+								loading.classList.add('hidden');
+								showToast(err.message);
+							});
+					}
+
+					function coreMemberRow(member) {
+						var li = document.createElement('li');
+						li.className = 'flex flex-col gap-1 py-3';
+
+						var header = document.createElement('button');
+						header.type = 'button';
+						header.className = 'flex w-full items-center justify-between gap-4 text-left';
+						var left = document.createElement('div');
+						left.className = 'min-w-0';
+						var nameEl = document.createElement('div');
+						nameEl.className = 'truncate font-medium text-stone-900';
+						nameEl.textContent = member.name;
+						left.appendChild(nameEl);
+						var roleEl = document.createElement('div');
+						roleEl.className = 'truncate text-sm text-stone-500';
+						roleEl.textContent = member.role;
+						left.appendChild(roleEl);
+						header.appendChild(left);
+						var toggle = document.createElement('span');
+						toggle.className = 'shrink-0 text-sm text-stone-500';
+						toggle.textContent = 'Show';
+						header.appendChild(toggle);
+						li.appendChild(header);
+
+						var details = document.createElement('div');
+						details.className = 'hidden mt-3 space-y-3 border-t border-stone-100 pt-3';
+
+						var img = document.createElement('img');
+						img.className = 'h-24 w-24 rounded-[3px] object-cover';
+						img.alt = member.name || 'Core member';
+						if (typeof member.image_url === 'string' && member.image_url) {
+							img.src = member.image_url;
+						}
+						details.appendChild(img);
+
+						var nameLabel = document.createElement('label');
+						nameLabel.className = 'block';
+						var nameSpan = document.createElement('span');
+						nameSpan.className = 'text-sm font-medium text-stone-700';
+						nameSpan.textContent = 'Name';
+						nameLabel.appendChild(nameSpan);
+						var nameInput = coreTextInput(member.name, 'Full name');
+						nameLabel.appendChild(nameInput);
+						details.appendChild(nameLabel);
+
+						var roleLabel = document.createElement('label');
+						roleLabel.className = 'block';
+						var roleSpan = document.createElement('span');
+						roleSpan.className = 'text-sm font-medium text-stone-700';
+						roleSpan.textContent = 'Role';
+						roleLabel.appendChild(roleSpan);
+						var roleInput = coreTextInput(member.role, 'Role');
+						roleLabel.appendChild(roleInput);
+						details.appendChild(roleLabel);
+
+						var descLabel = document.createElement('label');
+						descLabel.className = 'block';
+						var descSpan = document.createElement('span');
+						descSpan.className = 'text-sm font-medium text-stone-700';
+						descSpan.textContent = 'Description';
+						descLabel.appendChild(descSpan);
+						var descInput = document.createElement('textarea');
+						descInput.rows = 5;
+						descInput.value = member.description || '';
+						descInput.className = 'mt-1 w-full rounded-[3px] border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-[#33523B] focus:outline-none';
+						descLabel.appendChild(descInput);
+						details.appendChild(descLabel);
+
+						var textRow = document.createElement('div');
+						textRow.className = 'flex shrink-0 items-center gap-2';
+						var saveBtn = document.createElement('button');
+						saveBtn.type = 'button';
+						saveBtn.textContent = 'Save text';
+						saveBtn.className = 'shrink-0 rounded-[3px] bg-[#33523B] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#26402D] disabled:opacity-50';
+						saveBtn.addEventListener('click', function() {
+							saveCoreMemberText(
+								member.uuid,
+								nameInput.value,
+								roleInput.value,
+								descInput.value,
+								saveBtn,
+								nameEl,
+								roleEl
+							);
+						});
+						textRow.appendChild(saveBtn);
+						var deleteBtn = document.createElement('button');
+						deleteBtn.type = 'button';
+						deleteBtn.textContent = 'Remove';
+						deleteBtn.className = 'shrink-0 rounded-[3px] bg-[#7F1D1D] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#671818] disabled:opacity-50';
+						deleteBtn.addEventListener('click', function() {
+							confirmDeleteCoreMember(member.uuid, member.name, li);
+						});
+						textRow.appendChild(deleteBtn);
+						details.appendChild(textRow);
+
+						var photoLabel = document.createElement('label');
+						photoLabel.className = 'block';
+						var photoSpan = document.createElement('span');
+						photoSpan.className = 'text-sm font-medium text-stone-700';
+						photoSpan.textContent = 'New photo (.jpg, .jpeg, .png or .webp, max 5MB)';
+						photoLabel.appendChild(photoSpan);
+						var photoInput = document.createElement('input');
+						photoInput.type = 'file';
+						photoInput.accept = '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp';
+						photoInput.className = 'mt-1 block w-full text-sm text-stone-600 file:mr-3 file:rounded-[3px] file:border-0 file:bg-[#EDEFE4] file:px-4 file:py-2 file:text-sm file:font-bold file:text-[#16211B] hover:file:bg-white';
+						photoLabel.appendChild(photoInput);
+						details.appendChild(photoLabel);
+
+						var photoBtn = document.createElement('button');
+						photoBtn.type = 'button';
+						photoBtn.textContent = 'Save photo';
+						photoBtn.className = 'shrink-0 rounded-[3px] bg-[#1C1917] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-stone-700 disabled:opacity-50';
+						photoBtn.addEventListener('click', function() {
+							saveCoreMemberPhoto(member.uuid, photoInput, img, photoBtn);
+						});
+						details.appendChild(photoBtn);
+
+						header.addEventListener('click', function() {
+							var open = details.classList.toggle('hidden');
+							toggle.textContent = open ? 'Show' : 'Hide';
+						});
+						li.appendChild(details);
+						return li;
+					}
+
+					function saveCoreMemberText(
+						memberUuid, name, role, description,
+						btn, nameEl, roleEl
+					) {
+						if (!coreUuidPattern.test(memberUuid)) {
+							showToast('Invalid member');
+							return;
+						}
+						if (!name.trim() || !role.trim() || !description.trim()) {
+							showToast('Name, role and description are required');
+							return;
+						}
+						btn.disabled = true;
+						var textPath = '/api/v1/admin/core-members/' +
+							encodeURIComponent(memberUuid);
+						authFetchWithRetry(textPath, {
+							method: 'PATCH',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								name: name.trim(),
+								role: role.trim(),
+								description: description.trim()
+							})
+						}).then(function(resp) {
+							return checkApiResponse(resp, 'Failed to update member');
+						}).then(function(resp) {
+							return resp.json();
+						}).then(function(data) {
+							if (data && data.member) {
+								nameEl.textContent = data.member.name || name.trim();
+								roleEl.textContent = data.member.role || role.trim();
+							} else {
+								nameEl.textContent = name.trim();
+								roleEl.textContent = role.trim();
+							}
+							coreMembersLoaded = false;
+							showToast('Member updated');
+						}).catch(function(err) {
+							failCoreMember(err, 'Failed to update member');
+						}).finally(function() {
+							btn.disabled = false;
+						});
+					}
+
+					function saveCoreMemberPhoto(memberUuid, fileInput, img, btn) {
+						if (!coreUuidPattern.test(memberUuid)) {
+							showToast('Invalid member');
+							return;
+						}
+						if (!fileInput.files || !fileInput.files.length) {
+							showToast('Please choose a photo');
+							return;
+						}
+						var file = fileInput.files[0];
+						var ext = corePhotoExtFromName(file.name);
+						if (ext !== '.jpg' && ext !== '.jpeg' &&
+							ext !== '.png' && ext !== '.webp') {
+							showToast('Photo must be a .jpg, .jpeg, .png or .webp image');
+							return;
+						}
+						if (file.size <= 0 || file.size > 5 * 1024 * 1024) {
+							showToast('Photo must be non-empty and at most 5MB');
+							return;
+						}
+						btn.disabled = true;
+						var photoUrlPath = '/api/v1/admin/core-members/' +
+							encodeURIComponent(memberUuid) +
+							'/photo/upload-url';
+						authFetchWithRetry(photoUrlPath, {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ extension: ext })
+						}).then(function(resp) {
+							return checkApiResponse(resp, 'Failed to start upload');
+						}).then(function(resp) {
+							return resp.json();
+						}).then(function(data) {
+							if (!data || !data.image_filename || !data.upload_url) {
+								throw new Error('Failed to start upload: bad upload response');
+							}
+							return fetchWithRetry(data.upload_url, {
+								method: 'PUT',
+								headers: { 'Content-Type': corePhotoContentType(ext, file) },
+								body: file
+							}).then(function(putResp) {
+								return checkApiResponse(putResp, 'Failed to upload photo');
+							}).then(function() {
+								return data.image_filename;
+							});
+						}).then(function(imageFilename) {
+							var photoConfirmPath =
+								'/api/v1/admin/core-members/' +
+								encodeURIComponent(memberUuid) +
+								'/photo/confirm';
+							return authFetchWithRetry(photoConfirmPath, {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({ image_filename: imageFilename })
+							}).then(function(resp) {
+								return checkApiResponse(resp, 'Failed to save photo');
+							}).then(function(resp) {
+								return resp.json();
+							});
+						}).then(function(data) {
+							if (data && data.member && data.member.image_url) {
+								img.src = data.member.image_url;
+							}
+							fileInput.value = '';
+							coreMembersLoaded = false;
+							loadCoreMembersAdmin();
+							showToast('Photo updated');
+						}).catch(function(err) {
+							failCoreMember(err, 'Failed to save photo');
+						}).finally(function() {
+							btn.disabled = false;
+						});
+					}
+
+					function confirmDeleteCoreMember(memberUuid, name, row) {
+						showToastWithActions('Remove "' + name + '" from core members?', [
+							{
+								label: 'Cancel',
+								pressed: function() {
+									hideToast();
+								}
+							},
+							{
+								label: 'Remove',
+								danger: true,
+								pressed: function() {
+									hideToast();
+									doDeleteCoreMember(memberUuid, row);
+								}
+							}
+						]);
+					}
+
+					function doDeleteCoreMember(memberUuid, row) {
+						var deletePath = '/api/v1/admin/core-members/' +
+							encodeURIComponent(memberUuid);
+						authFetchWithRetry(deletePath, {
+							method: 'DELETE'
+						}).then(function(resp) {
+							return checkApiResponse(resp, 'Failed to remove member');
+						}).then(function() {
+							row.remove();
+							var listEl = document.getElementById('core-members-list');
+							var emptyEl = document.getElementById('core-members-empty');
+							if (!listEl.children.length) {
+								listEl.classList.add('hidden');
+								emptyEl.classList.remove('hidden');
+							}
+							coreMembersLoaded = false;
+							showToast('Member removed');
+						}).catch(function(err) {
+							failCoreMember(err, 'Failed to remove member');
+						});
+					}
+
+					var addBtn = document.getElementById('btn-core-add');
+					addBtn.addEventListener('click', function() {
+						var name = document.getElementById('core-new-name').value.trim();
+						var role = document.getElementById('core-new-role').value.trim();
+						var description = document.getElementById(
+							'core-new-description'
+						).value.trim();
+						var fileInput = document.getElementById('core-new-photo');
+						if (!name || !role || !description) {
+							showToast('Name, role and description are required');
+							return;
+						}
+						if (!fileInput.files || !fileInput.files.length) {
+							showToast('Please choose a photo');
+							return;
+						}
+						var file = fileInput.files[0];
+						var ext = corePhotoExtFromName(file.name);
+						if (ext !== '.jpg' && ext !== '.jpeg' &&
+							ext !== '.png' && ext !== '.webp') {
+							showToast('Photo must be a .jpg, .jpeg, .png or .webp image');
+							return;
+						}
+						if (file.size <= 0 || file.size > 5 * 1024 * 1024) {
+							showToast('Photo must be non-empty and at most 5MB');
+							return;
+						}
+						addBtn.disabled = true;
+						authFetchWithRetry('/api/v1/admin/core-members/upload-url', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ extension: ext })
+						}).then(function(resp) {
+							return checkApiResponse(resp, 'Failed to start upload');
+						}).then(function(resp) {
+							return resp.json();
+						}).then(function(data) {
+							if (!data || !data.uuid || !data.image_filename || !data.upload_url) {
+								throw new Error('Failed to start upload: bad upload response');
+							}
+							return fetchWithRetry(data.upload_url, {
+								method: 'PUT',
+								headers: { 'Content-Type': corePhotoContentType(ext, file) },
+								body: file
+							}).then(function(putResp) {
+								return checkApiResponse(putResp, 'Failed to upload photo');
+							}).then(function() {
+								return data;
+							});
+						}).then(function(data) {
+							return authFetchWithRetry('/api/v1/admin/core-members/confirm', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({
+									uuid: data.uuid,
+									name: name,
+									role: role,
+									description: description,
+									image_filename: data.image_filename
+								})
+							}).then(function(resp) {
+								return checkApiResponse(resp, 'Failed to add member');
+							});
+						}).then(function() {
+							document.getElementById('core-new-name').value = '';
+							document.getElementById('core-new-role').value = '';
+							document.getElementById('core-new-description').value = '';
+							fileInput.value = '';
+							coreMembersLoaded = false;
+							loadCoreMembersAdmin();
+							showToast('Member added');
+						}).catch(function(err) {
+							failCoreMember(err, 'Failed to add member');
+						}).finally(function() {
+							addBtn.disabled = false;
 						});
 					});
 					});

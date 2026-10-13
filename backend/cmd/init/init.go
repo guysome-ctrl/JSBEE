@@ -2,6 +2,7 @@ package main
 
 import (
 	a "github.com/Ankumeah/JSBEE/backend/internal/app"
+	"github.com/Ankumeah/JSBEE/backend/internal/database"
 	"github.com/Ankumeah/JSBEE/backend/internal/database/migrations"
 	"github.com/Ankumeah/JSBEE/backend/internal/frontend"
 	"github.com/Ankumeah/JSBEE/backend/internal/frontend/assets"
@@ -13,6 +14,9 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"path"
+	"strings"
+	"uuid"
 )
 
 // Initalises the logger
@@ -139,4 +143,65 @@ func seedAboutPage(ctx context.Context, app *a.App) {
 	}
 
 	log.Println("About page seeded")
+}
+
+// Seeds core members
+func seedCoreMembers(ctx context.Context, app *a.App) {
+	log.Println("Seeding core members")
+
+	existing, err := app.DBController.GetCoreMembers(ctx)
+	if err != nil {
+		log.Fatalf("Error while checking core members: %v\n", err.Error())
+	}
+	present := make(map[string]bool, len(existing))
+	for _, m := range existing {
+		present[m.Role] = true
+	}
+
+	seeded := 0
+	for i, role := range provider.CoreMemberOrder {
+		if present[role] {
+			continue
+		}
+		m := provider.CoreMembers[role]
+
+		assetKey := strings.TrimPrefix(m.ImagePath, "/")
+		data, ok := assets.GetAsset(assetKey)
+		if !ok || len(data) == 0 {
+			log.Fatalf("Missing photo for core member %q\n", role)
+		}
+
+		ext := strings.ToLower(path.Ext(assetKey))
+		if ext == "" {
+			ext = ".jpg"
+		}
+
+		memberUUID := uuid.New()
+		filename := "core-" + memberUUID.String() + ext
+
+		buf := bytes.NewReader(data)
+		if err := app.ObjectStore.AddFile(
+			ctx, filename, buf, int64(len(data)),
+		); err != nil {
+			log.Fatalf("Error seeding core member photo %q: %v\n", role, err.Error())
+		}
+		if err := app.ObjectStore.PublicFile(ctx, filename); err != nil {
+			log.Fatalf("Error publishing core member photo %q: %v\n", role, err.Error())
+		}
+
+		if err := app.DBController.AddCoreMember(ctx, database.CoreMember{
+			UUID:          memberUUID,
+			Name:          m.Name,
+			Role:          role,
+			Description:   m.Description,
+			ImageFilename: filename,
+			SortOrder:     int64(i),
+		}); err != nil {
+			_ = app.ObjectStore.DeleteFile(ctx, filename)
+			log.Fatalf("Error while seeding core member %q: %v\n", role, err.Error())
+		}
+		seeded++
+	}
+
+	log.Printf("Core members seeded: %d new\n", seeded)
 }

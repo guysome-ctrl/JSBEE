@@ -1,6 +1,7 @@
 package apis
 
 import (
+	"github.com/Ankumeah/JSBEE/backend/internal/apis/shared"
 	a "github.com/Ankumeah/JSBEE/backend/internal/app"
 
 	"github.com/gin-gonic/gin"
@@ -26,7 +27,7 @@ func user(r *gin.RouterGroup, app *a.App) {
 			}
 
 			user, err := app.DBController.GetUser(ctx, userUUID)
-			if !handleError(c, "GetUser", err) {
+			if !shared.HandleError(c, "GetUser", err) {
 				return
 			}
 
@@ -34,7 +35,7 @@ func user(r *gin.RouterGroup, app *a.App) {
 			return
 		} else if userEmail != "" {
 			user, err := app.DBController.GetUserByEmail(ctx, userEmail)
-			if !handleError(c, "GetUserByEmail", err) {
+			if !shared.HandleError(c, "GetUserByEmail", err) {
 				return
 			}
 
@@ -67,7 +68,7 @@ func user(r *gin.RouterGroup, app *a.App) {
 			}
 		} else if userEmail != "" {
 			user, err := app.DBController.GetUserByEmail(ctx, userEmail)
-			if !handleError(c, "GetUserByEmail", err) {
+			if !shared.HandleError(c, "GetUserByEmail", err) {
 				return
 			}
 
@@ -81,7 +82,7 @@ func user(r *gin.RouterGroup, app *a.App) {
 		}
 
 		papers, err := app.DBController.GetUserPapers(ctx, userUUID)
-		if !handleError(c, "GetUserPapers", err) {
+		if !shared.HandleError(c, "GetUserPapers", err) {
 			return
 		}
 

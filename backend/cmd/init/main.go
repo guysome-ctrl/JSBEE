@@ -25,6 +25,7 @@ func main() {
 		connectObjectStore(Ctx, app)
 		initObjectStore(Ctx, app)
 		seedAboutPage(Ctx, app)
+		seedCoreMembers(Ctx, app)
 		generateInitalComponents(Ctx, app)
 		saveAssets(Ctx, app)
 	})

@@ -1,8 +1,6 @@
 package components
 
 import (
-	"strings"
-
 	"github.com/Ankumeah/JSBEE/backend/internal/provider"
 )
 
@@ -10,21 +8,6 @@ var teamInfo = pageInfo{
 	title:       "Our team | JSBEE core members and city leaders",
 	description: "Meet the JSBEE team — student core members and city leaders building an open-access research journal for sustainability, business and economics.",
 	canonical:   "/team",
-}
-
-templ coreCard(role string, last bool) {
-	<article class={ "border-t border-[#DDD5C2] pt-6", templ.KV("border-b pb-6", last) }>
-		<div class="flex gap-5">
-			<img src={ provider.CoreMembers[role].ImagePath } alt={ provider.CoreMembers[role].Name } class="h-24 w-24 shrink-0 rounded-[3px] object-cover"/>
-			<div>
-				<h3 class="font-serif text-xl font-semibold text-stone-900">{ provider.CoreMembers[role].Name }</h3>
-				<p class="mt-1 text-sm font-medium text-[#33523B]">{ role }</p>
-			</div>
-		</div>
-		for j, para := range strings.Split(provider.CoreMembers[role].Description, "\n\n") {
-			<p class={ "text-sm leading-relaxed text-stone-600", templ.KV("mt-4", j == 0), templ.KV("mt-3", j > 0) }>{ para }</p>
-		}
-	</article>
 }
 
 templ teamPage() {
@@ -63,10 +46,20 @@ templ teamPage() {
 					City leaders
 				</button>
 			</div>
-			<div id="panel-core" class="mt-8 grid gap-10">
-				for i, role := range provider.CoreMemberOrder {
-					@coreCard(role, i == len(provider.CoreMemberOrder)-1)
-				}
+			<div id="panel-core" class="mt-8">
+				<div id="core-loading" class="text-center text-sm text-stone-500">Loading core members...</div>
+				<div id="core-error" class="hidden text-center text-sm text-[#7F1D1D]"></div>
+				<p id="core-empty" class="hidden text-center text-sm text-stone-500">No core members yet.</p>
+				<div id="core-list" class="hidden grid gap-10"></div>
+				<noscript>
+					<p class="leading-relaxed text-stone-600">
+						JSBEE is built by student core members working across
+						research, content, partnerships, finance, technology
+						and outreach.
+						Enable JavaScript to meet the team, or start from
+						<a href="/" class="font-medium text-[#33523B] hover:underline hover:underline-offset-4">the homepage</a>.
+					</p>
+				</noscript>
 			</div>
 			<div id="panel-leaders" class="hidden">
 				<div id="team-loading" class="mt-8 text-center text-sm text-stone-500">Loading team...</div>
@@ -90,6 +83,95 @@ templ teamPage() {
 					document.getElementById('tab-leaders').className = core ? inactiveTab : activeTab;
 				}
 
+				function el(tag, className, text) {
+					var node = document.createElement(tag);
+					if (className) {
+						node.className = className;
+					}
+					if (text != null) {
+						node.textContent = text;
+					}
+					return node;
+				}
+
+				function coreCard(member, last) {
+					var articleClass = 'border-t border-[#DDD5C2] pt-6';
+					if (last) {
+						articleClass += ' border-b pb-6';
+					}
+					var article = el('article', articleClass);
+					var head = el('div', 'flex gap-5');
+					var img = document.createElement('img');
+					img.className = 'h-24 w-24 shrink-0 rounded-[3px] object-cover';
+					img.alt = member.name || 'Core member';
+					img.loading = 'lazy';
+					if (typeof member.image_url === 'string' && member.image_url) {
+						img.src = member.image_url;
+					}
+					head.appendChild(img);
+					var titles = el('div');
+					titles.appendChild(el(
+						'h3',
+						'font-serif text-xl font-semibold text-stone-900',
+						member.name || 'Unknown'
+					));
+					titles.appendChild(el(
+						'p',
+						'mt-1 text-sm font-medium text-[#33523B]',
+						member.role || ''
+					));
+					head.appendChild(titles);
+					article.appendChild(head);
+					var paras = typeof member.description === 'string' ?
+						member.description.split('\n\n') : [];
+					paras.forEach(function(para, j) {
+						var paraClass =
+							'text-sm leading-relaxed text-stone-600';
+						paraClass += (j === 0 ? ' mt-4' : ' mt-3');
+						article.appendChild(el('p', paraClass, para));
+					});
+					return article;
+				}
+
+				function loadCoreMembers() {
+					var loading = document.getElementById('core-loading');
+					var errorEl = document.getElementById('core-error');
+					var emptyEl = document.getElementById('core-empty');
+					var list = document.getElementById('core-list');
+
+					fetchWithRetry('/api/v1/core-members')
+						.then(function(resp) {
+							return checkApiResponse(resp, 'Failed to load core members');
+						})
+						.then(function(resp) {
+							return resp.json();
+						})
+						.then(function(data) {
+							var raw = (data && data.core_members) || [];
+							var members = Array.isArray(raw) ? raw : [];
+							members = members.filter(function(m) {
+								return m && typeof m.uuid === 'string' && uuidPattern.test(m.uuid) &&
+									typeof m.name === 'string' && m.name &&
+									typeof m.role === 'string' && m.role &&
+									typeof m.description === 'string' && m.description;
+							});
+							loading.classList.add('hidden');
+							if (!members.length) {
+								emptyEl.classList.remove('hidden');
+								return;
+							}
+							members.forEach(function(member, i) {
+								list.appendChild(coreCard(member, i === members.length - 1));
+							});
+							list.classList.remove('hidden');
+						})
+						.catch(function(err) {
+							loading.classList.add('hidden');
+							errorEl.textContent = 'Failed to load core members: ' + err.message;
+							errorEl.classList.remove('hidden');
+						});
+				}
+
 				function initTeam() {
 					document.getElementById('tab-core').addEventListener('click', function() {
 						selectTab('core');
@@ -97,6 +179,8 @@ templ teamPage() {
 					document.getElementById('tab-leaders').addEventListener('click', function() {
 						selectTab('leaders');
 					});
+
+					loadCoreMembers();
 
 					var loading = document.getElementById('team-loading');
 					var errorEl = document.getElementById('team-error');
